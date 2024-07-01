@@ -1,0 +1,12 @@
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+@app.route("/chatbot", methods=["POST"])
+def chatbot():
+    user_query = request.json.get("query")
+    response = get_personalized_response(user_query)
+    return jsonify({"response": response})
+
+if __name__ == "__main__":
+    app.run(port=5000)
