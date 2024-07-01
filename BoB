@@ -1,0 +1,54 @@
+!pip install azure-ai-textanalytics azure-search-documents openai azure-cosmos
+
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.textanalytics import TextAnalyticsClient
+from azure.search.documents import SearchClient
+from azure.search.documents.indexes import SearchIndexClient
+from azure.search.documents.indexes.models import SearchIndex, SimpleField, SearchFieldDataType
+from azure.cosmos import CosmosClient
+import openai
+
+# Define credentials and endpoint
+azure_search_endpoint = "YOUR_AZURE_SEARCH_ENDPOINT"
+azure_search_key = "YOUR_AZURE_SEARCH_KEY"
+cosmos_endpoint = "YOUR_COSMOS_ENDPOINT"
+cosmos_key = "YOUR_COSMOS_KEY"
+openai_api_key = "YOUR_OPENAI_API_KEY"
+
+# Initialize Cognitive Search client
+search_client = SearchClient(endpoint=azure_search_endpoint, index_name="YOUR_INDEX_NAME", credential=AzureKeyCredential(azure_search_key))
+
+# Initialize Cosmos DB client
+cosmos_client = CosmosClient(cosmos_endpoint, cosmos_key)
+database_name = 'YOUR_DATABASE_NAME'
+container_name = 'YOUR_CONTAINER_NAME'
+database = cosmos_client.create_database_if_not_exists(id=database_name)
+container = database.create_container_if_not_exists(id=container_name, partition_key=PartitionKey(path="/your_partition_key"))
+
+# Initialize OpenAI
+openai.api_key = openai_api_key
+
+
+def search_documents(query):
+    results = search_client.search(search_text=query)
+    return [doc['content'] for doc in results]
+
+
+def generate_response(prompt):
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=prompt,
+        max_tokens=150
+    )
+    return response.choices[0].text.strip()
+
+
+def get_personalized_response(user_query):
+    # Retrieve relevant documents using Azure Cognitive Search
+    documents = search_documents(user_query)
+    context = " ".join(documents)
+
+    # Generate response using OpenAI GPT
+    prompt = f"Context: {context}\nUser Query: {user_query}\nResponse:"
+    response = generate_response(prompt)
+    return response
